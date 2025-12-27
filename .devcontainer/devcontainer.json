@@ -1,0 +1,69 @@
+{
+	"name": "AuroxLink Development",
+	"image": "debian:bookworm",
+	
+	"features": {
+		"ghcr.io/devcontainers/features/common-utils:2": {
+			"installZsh": true,
+			"installOhMyZsh": true,
+			"upgradePackages": true,
+			"username": "vscode",
+			"userUid": "1000",
+			"userGid": "1000"
+		},
+		"ghcr.io/devcontainers/features/git:1": {
+			"version": "latest"
+		},
+		"ghcr.io/devcontainers/features/php:1": {
+			"version": "8.2",
+			"installComposer": true
+		}
+	},
+
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"bmewburn.vscode-intelephense-client",
+				"xdebug.php-debug",
+				"devsense.phptools-vscode",
+				"zobo.php-intellisense",
+				"ms-azuretools.vscode-docker",
+				"esbenp.prettier-vscode",
+				"redhat.vscode-yaml"
+			],
+			"settings": {
+				"php.validate.executablePath": "/usr/bin/php",
+				"php.suggest.basic": true,
+				"editor.formatOnSave": true,
+				"files.associations": {
+					"*.conf": "ini"
+				}
+			}
+		}
+	},
+
+	"forwardPorts": [80, 3306],
+	
+	"portsAttributes": {
+		"80": {
+			"label": "Apache Web Server",
+			"onAutoForward": "notify"
+		},
+		"3306": {
+			"label": "MySQL Database",
+			"onAutoForward": "silent"
+		}
+	},
+
+	"postCreateCommand": "bash .devcontainer/setup.sh",
+	
+	"remoteUser": "vscode",
+	
+	"mounts": [
+		"source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+	],
+
+	"runArgs": [
+		"--privileged"
+	]
+}
