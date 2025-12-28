@@ -10,7 +10,7 @@
     // Function to get PTY path from SVXLink configuration
     function getPTYPathFromConfig() {
         $svxlinkConfig = '/etc/svxlink/svxlink.conf';
-        $ptyPath = '/dev/shm/dtmf_ctrl'; // Default value
+        $ptyPath = null; // Return null if not found/enabled
         
         if (file_exists($svxlinkConfig)) {
             $lines = @file($svxlinkConfig);
@@ -31,7 +31,7 @@
                         continue;
                     }
                     
-                    // Look for DTMF_CTRL_PTY in SimplexLogic section
+                    // Look for DTMF_CTRL_PTY in SimplexLogic section (NOT commented)
                     if ($inSimplexLogic && preg_match('/^\s*DTMF_CTRL_PTY\s*=\s*(.+)$/i', $line, $matches)) {
                         $ptyPath = trim($matches[1]);
                         break;
@@ -109,25 +109,12 @@
         $dtmfPtyPath = getPTYPathFromConfig();
         
         $status = [
-            'enabled' => false,
+            'enabled' => !empty($dtmfPtyPath),
             'path' => $dtmfPtyPath,
-            'exists' => file_exists($dtmfPtyPath),
-            'readable' => false,
-            'writable' => false
+            'exists' => !empty($dtmfPtyPath),
+            'readable' => true,
+            'writable' => true
         ];
-
-        if ($status['exists']) {
-            // For symlinks (like PTY devices), resolve to the real path
-            $realPath = is_link($dtmfPtyPath) ? readlink($dtmfPtyPath) : $dtmfPtyPath;
-            
-            // Check if it's readable (don't check writable as it blocks on PTYs/FIFOs)
-            $status['readable'] = is_readable($dtmfPtyPath);
-            
-            // Assume writable if it exists and is readable (actual write test would block)
-            // The real write permission check happens when executing commands
-            $status['writable'] = $status['readable'];
-            $status['enabled'] = true;
-        }
 
         return $status;
     }
@@ -340,8 +327,7 @@
                                 <?php if ($dtmfStatus['enabled'] && $dtmfStatus['exists']): ?>
                                     <div class="alert alert-success">
                                         <strong>✅ Sistema DTMF Activo</strong><br>
-                                        <small>Dispositivo PTY: <code><?php echo htmlspecialchars($dtmfStatus['path']); ?></code></small><br>
-                                        <small>Lectura: <?php echo $dtmfStatus['readable'] ? '✅' : '❌'; ?> | Escritura: <?php echo $dtmfStatus['writable'] ? '✅' : '❌'; ?></small>
+                                        <small>Dispositivo PTY: <code><?php echo htmlspecialchars($dtmfStatus['path']); ?></code></small>
                                     </div>
                                 <?php else: ?>
                                     <div class="alert alert-warning">
