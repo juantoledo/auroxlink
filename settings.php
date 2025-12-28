@@ -43,7 +43,7 @@
     // CONFIGURACION SVXLINK
     $archivo_svxlink = "/etc/svxlink/svxlink.conf";
     $parametros_svxlink = [
-        "[SimplexLogic]" => ["CALLSIGN"],
+        "[SimplexLogic]" => ["CALLSIGN", "DTMF_CTRL_PTY"],
         "[Rx1]" => ["AUDIO_DEV", "SQL_DET", "SQL_START_DELAY", "SQL_DELAY", "SQL_HANGTIME", "SERIAL_PORT", "SERIAL_PIN"],
         "[Tx1]" => ["AUDIO_DEV", "PTT_TYPE", "PTT_PORT", "PTT_PIN"],
         "[LocationInfo]" => []
@@ -54,13 +54,21 @@
     if (file_exists($archivo_svxlink)) {
         $lineas_s = file($archivo_svxlink);
         foreach ($lineas_s as $linea_s) {
+        $linea_s_original = $linea_s;
         $linea_s = trim($linea_s);
             if (preg_match("/^\[(.*)\]/", $linea_s, $match)) {
                 $bloque_actual = "[" . $match[1] . "]";
             } elseif ($bloque_actual && isset($parametros_svxlink[$bloque_actual])) {
                 foreach ($parametros_svxlink[$bloque_actual] as $clave_s) {
+                    // Check for active line
                     if (stripos($linea_s, $clave_s . "=") === 0) {
                         $valores_svxlink[$bloque_actual][$clave_s] = trim(explode("=", $linea_s, 2)[1]);
+                        $valores_svxlink[$bloque_actual][$clave_s . "_enabled"] = true;
+                    }
+                    // Check for commented line (for DTMF_CTRL_PTY)
+                    elseif (preg_match("/^#\s*" . preg_quote($clave_s, '/') . "\s*=\s*(.*)$/i", $linea_s, $match)) {
+                        $valores_svxlink[$bloque_actual][$clave_s] = trim($match[1]);
+                        $valores_svxlink[$bloque_actual][$clave_s . "_enabled"] = false;
                     }
                 }
             }
@@ -236,8 +244,25 @@
                                 <h5 class="mt-4"><?php echo $seccion; ?></h5>
                                     <?php foreach ($claves_s as $clave_s): ?>
                                         <div class="form-group mb-3">
-                                            <label for="<?php echo $seccion . '_' . $clave_s; ?>"><?php echo $clave_s; ?></label>
-                                            <input type="text" class="form-control" name="<?php echo $clave_s; ?>" id="<?php echo $clave_s; ?>" value="<?php echo htmlspecialchars($valores_svxlink[$seccion][$clave_s] ?? ''); ?>">
+                                            <?php if ($clave_s === "DTMF_CTRL_PTY"): ?>
+                                                <div class="form-check mb-2">
+                                                    <input type="checkbox" class="form-check-input" name="<?php echo $clave_s; ?>_enabled" id="<?php echo $clave_s; ?>_enabled" value="1" 
+                                                        <?php echo (!empty($valores_svxlink[$seccion][$clave_s . "_enabled"])) ? 'checked' : ''; ?>
+                                                        onchange="document.getElementById('<?php echo $clave_s; ?>').disabled = !this.checked;">
+                                                    <label class="form-check-label" for="<?php echo $clave_s; ?>_enabled">
+                                                        Habilitar <?php echo $clave_s; ?>
+                                                    </label>
+                                                </div>
+                                                <label for="<?php echo $seccion . '_' . $clave_s; ?>"><?php echo $clave_s; ?></label>
+                                                <input type="text" class="form-control" name="<?php echo $clave_s; ?>" id="<?php echo $clave_s; ?>" 
+                                                    value="<?php echo htmlspecialchars($valores_svxlink[$seccion][$clave_s] ?? '/dev/shm/dtmf_ctrl'); ?>"
+                                                    <?php echo (empty($valores_svxlink[$seccion][$clave_s . "_enabled"])) ? 'disabled' : ''; ?>
+                                                    placeholder="/dev/shm/dtmf_ctrl">
+                                                <small class="form-text text-muted">Esta opción es necesaria para la funcionalidad de <a href="dtmf-commands.php">Comandos DTMF</a></small>
+                                            <?php else: ?>
+                                                <label for="<?php echo $seccion . '_' . $clave_s; ?>"><?php echo $clave_s; ?></label>
+                                                <input type="text" class="form-control" name="<?php echo $clave_s; ?>" id="<?php echo $clave_s; ?>" value="<?php echo htmlspecialchars($valores_svxlink[$seccion][$clave_s] ?? ''); ?>">
+                                            <?php endif; ?>
                                         </div>
                                     <?php endforeach; ?>
                                 <?php endif; ?>

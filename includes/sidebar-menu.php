@@ -4,6 +4,7 @@
         <li class="nav-item"><a class="nav-link text-white fw-bold" href="status-node.php">Estado Nodo</a></li>
         <li class="nav-item"><a class="nav-link text-white fw-bold" href="echolink-traffic.php">Tráfico EchoLink</a></li>
         <li class="nav-item"><a class="nav-link text-white fw-bold" href="connections.php">Conexiones</a></li>
+        <li class="nav-item"><a class="nav-link text-white fw-bold" href="dtmf-commands.php">Comandos DTMF</a></li>
         <li class="nav-item"><a class="nav-link text-white fw-bold" href="settings.php">Configuración</a></li>
         <li class="nav-item"><a class="nav-link text-white fw-bold" href="custom.php">Personalización</a></li>
         <li class="nav-item"><a class="nav-link text-white fw-bold" href="about.php">Acerca de '. $titleSite .'</a></li>
