@@ -121,17 +121,8 @@
 
     // Function to send DTMF command
     function sendDTMFCommand($command, $config) {
-        // Check if PTY device exists before executing
-        if (!file_exists($config['pty_path'])) {
-            return [
-                'success' => false, 
-                'message' => 'Error: El dispositivo PTY no existe: ' . $config['pty_path'],
-                'executed_command' => null
-            ];
-        }
-        
-        // Skip is_writable() check for FIFOs/PTYs as they block when there's no reader
-        // The actual write operation will fail properly if there are permission issues
+        // Don't pre-check file existence - symlinks may appear broken but still work
+        // Let the actual command execution handle any errors
         
         // Use configured execution command
         $executionCmd = $config['execution_command'];
