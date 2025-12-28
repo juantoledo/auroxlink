@@ -228,6 +228,123 @@
                     </div>
                 </div>
 
+                <?php
+                // DTMF Quick Execute Section
+                $dtmfCustomCommandsFile = __DIR__ . '/dtmf_custom_commands.json';
+                $dtmfConfigFile = __DIR__ . '/dtmf_config.json';
+                
+                // Function to load custom commands
+                function loadDTMFCustomCommands($file) {
+                    if (!file_exists($file)) {
+                        return [];
+                    }
+                    $content = @file_get_contents($file);
+                    if ($content === false) {
+                        return [];
+                    }
+                    $commands = json_decode($content, true);
+                    return is_array($commands) ? $commands : [];
+                }
+                
+                // Function to load DTMF config
+                function loadIndexDTMFConfig($file) {
+                    if (!file_exists($file)) {
+                        return [
+                            'execution_command' => "printf '{DTMF_CODE}' | sudo -u svxlink /usr/bin/tee {PTY_DEVICE} >/dev/null",
+                            'pty_path' => '/dev/shm/dtmf_ctrl'
+                        ];
+                    }
+                    $content = @file_get_contents($file);
+                    if ($content === false) {
+                        return [
+                            'execution_command' => "printf '{DTMF_CODE}' | sudo -u svxlink /usr/bin/tee {PTY_DEVICE} >/dev/null",
+                            'pty_path' => '/dev/shm/dtmf_ctrl'
+                        ];
+                    }
+                    $config = json_decode($content, true);
+                    return is_array($config) ? $config : [
+                        'execution_command' => "printf '{DTMF_CODE}' | sudo -u svxlink /usr/bin/tee {PTY_DEVICE} >/dev/null",
+                        'pty_path' => '/dev/shm/dtmf_ctrl'
+                    ];
+                }
+                
+                // Function to execute DTMF command
+                function executeIndexDTMFCommand($command, $config) {
+                    $executionCmd = $config['execution_command'];
+                    $finalCmd = str_replace('{DTMF_CODE}', $command, $executionCmd);
+                    $finalCmd = str_replace('{PTY_DEVICE}', $config['pty_path'], $finalCmd);
+                    
+                    $wrappedCmd = "bash -c " . escapeshellarg($finalCmd) . " 2>&1; echo \"EXIT_CODE:\$?\"";
+                    $output = shell_exec($wrappedCmd);
+                    
+                    $exitCode = 1;
+                    if ($output !== null && preg_match('/EXIT_CODE:(\d+)$/', $output, $matches)) {
+                        $exitCode = (int)$matches[1];
+                    }
+                    
+                    return $exitCode === 0;
+                }
+                
+                // Handle DTMF command execution
+                $dtmfMessage = null;
+                $dtmfMessageType = 'info';
+                
+                if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['dtmf_execute'])) {
+                    $commandCode = $_POST['dtmf_code'] ?? '';
+                    $commandName = $_POST['dtmf_name'] ?? '';
+                    
+                    if (!empty($commandCode)) {
+                        $dtmfConfig = loadIndexDTMFConfig($dtmfConfigFile);
+                        $success = executeIndexDTMFCommand($commandCode, $dtmfConfig);
+                        
+                        if ($success) {
+                            $dtmfMessage = '✅ Comando "' . htmlspecialchars($commandName) . '" (' . htmlspecialchars($commandCode) . ') ejecutado correctamente.';
+                            $dtmfMessageType = 'success';
+                        } else {
+                            $dtmfMessage = '❌ Error al ejecutar el comando "' . htmlspecialchars($commandName) . '".';
+                            $dtmfMessageType = 'danger';
+                        }
+                    }
+                }
+                
+                $dtmfCommands = loadDTMFCustomCommands($dtmfCustomCommandsFile);
+                
+                if (!empty($dtmfCommands)):
+                ?>
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <div class="card p-3">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h6 class="mb-0">📡 Comandos DTMF Rápidos</h6>
+                                <a href="dtmf-commands.php" class="btn btn-sm btn-outline-primary">
+                                    Administrar
+                                </a>
+                            </div>
+                            
+                            <?php if ($dtmfMessage): ?>
+                            <div class="alert alert-<?php echo $dtmfMessageType; ?> alert-dismissible fade show" role="alert">
+                                <?php echo $dtmfMessage; ?>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                            <?php endif; ?>
+                            
+                            <div class="d-flex flex-wrap gap-2">
+                                <?php foreach ($dtmfCommands as $cmd): ?>
+                                <form method="POST" class="d-inline" onsubmit="return confirm('¿Ejecutar comando &quot;<?php echo htmlspecialchars($cmd['name']); ?>&quot; (<?php echo htmlspecialchars($cmd['code']); ?>)?');">
+                                    <input type="hidden" name="dtmf_execute" value="1">
+                                    <input type="hidden" name="dtmf_code" value="<?php echo htmlspecialchars($cmd['code']); ?>">
+                                    <input type="hidden" name="dtmf_name" value="<?php echo htmlspecialchars($cmd['name']); ?>">
+                                    <button type="submit" class="btn btn-success btn-sm" title="<?php echo htmlspecialchars($cmd['code']); ?>">
+                                        ▶️ <?php echo htmlspecialchars($cmd['name']); ?>
+                                    </button>
+                                </form>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <?php endif; ?>
+
             </div>
         </div>
     </div>

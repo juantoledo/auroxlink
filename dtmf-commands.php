@@ -48,20 +48,20 @@
         if (!file_exists($file)) {
             // Default configuration
             return [
-                'execution_command' => "printf '{DTMF_CODE}' | sudo -u svxlink tee {PTY_DEVICE} >/dev/null",
+                'execution_command' => "printf '{DTMF_CODE}' | sudo -u svxlink /usr/bin/tee {PTY_DEVICE} >/dev/null",
                 'pty_path' => '/dev/shm/dtmf_ctrl'
             ];
         }
         $content = @file_get_contents($file);
         if ($content === false) {
             return [
-                'execution_command' => "printf '{DTMF_CODE}' | tee {PTY_DEVICE} >/dev/null",
+                'execution_command' => "printf '{DTMF_CODE}' | sudo -u svxlink /usr/bin/tee {PTY_DEVICE} >/dev/null",
                 'pty_path' => '/dev/shm/dtmf_ctrl'
             ];
         }
         $config = json_decode($content, true);
         return is_array($config) ? $config : [
-            'execution_command' => "printf '{DTMF_CODE}' | tee {PTY_DEVICE} >/dev/null",
+            'execution_command' => "printf '{DTMF_CODE}' | sudo -u svxlink /usr/bin/tee {PTY_DEVICE} >/dev/null",
             'pty_path' => '/dev/shm/dtmf_ctrl'
         ];
     }
@@ -332,6 +332,81 @@
                     </div>
                 </div>
 
+                <!-- Información adicional -->
+                <div class="row mt-3">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">ℹ️ Acerca de los Comandos DTMF</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>
+                                    Los comandos DTMF (Dual-Tone Multi-Frequency) permiten controlar tu nodo SVXLink mediante tonos enviados 
+                                    desde un radio transmisor o desde esta interfaz web.
+                                    <a href="https://www.svxlink.org/doc/man/man5/svxlink.conf.5.html#Common%20Logic%20configuration%20variables" target="_blank" rel="noopener noreferrer">
+                                        📖 Documentación oficial SVXLink
+                                    </a>
+                                </p>
+                                
+                                <div class="alert alert-info">
+                                    <strong>🚀 ¿Qué puedes hacer con esta función?</strong>
+                                    <p class="mb-1 mt-2">
+                                        Con comandos DTMF personalizados puedes simplificar operaciones complejas con un solo clic:
+                                    </p>
+                                    <ul class="mb-0">
+                                        <li>🌐 <strong>Conectar a nodos específicos:</strong> Guarda comandos para conectarte rápidamente a tus nodos favoritos</li>
+                                        <li>📞 <strong>Unirse a conferencias:</strong> Accede a salas de conferencia con un solo botón</li>
+                                        <li>🔧 <strong>Ejecutar funciones del sistema:</strong> Desconectar, cambiar modos de operación, consultar estado</li>
+                                        <li>⚡ <strong>Automatizar tareas frecuentes:</strong> Crea atajos para las operaciones que realizas más seguido</li>
+                                    </ul>
+                                </div>
+                                
+                                <p>
+                                    <strong>Requisitos:</strong>
+                                </p>
+                                <ul>
+                                    <li>La opción <code>DTMF_CTRL_PTY</code> debe estar habilitada en la configuración de SVXLink</li>
+                                    <li>El dispositivo PTY debe existir y tener permisos de lectura/escritura</li>
+                                    <li>El servicio SVXLink debe estar ejecutándose correctamente</li>
+                                </ul>
+                                
+                                <div class="alert alert-warning mt-3">
+                                    <strong>⚙️ Configuración de Permisos (Importante):</strong>
+                                    <p class="mb-2">
+                                        Para que el usuario del servidor web (<code>www-data</code> o <code>apache</code>) pueda enviar comandos DTMF al dispositivo PTY, 
+                                        necesitas configurar permisos sudo sin contraseña.
+                                    </p>
+                                    <p class="mb-2">
+                                        <strong>Ejemplo de configuración con visudo:</strong>
+                                    </p>
+                                    <pre class="bg-dark text-light p-2 rounded"><code>www-data ALL=(svxlink) NOPASSWD: /usr/bin/tee <?php echo htmlspecialchars($dtmfStatus['path'] ?? '/dev/shm/dtmf_ctrl'); ?></code></pre>
+                                    <p class="mb-2">
+                                        Para configurarlo, ejecuta como root:
+                                    </p>
+                                    <pre class="bg-dark text-light p-2 rounded"><code>sudo visudo</code></pre>
+                                    <p class="mb-2">
+                                        Y agrega la línea mostrada arriba al final del archivo. Esto permite que <code>www-data</code> ejecute 
+                                        el comando <code>tee</code> como usuario <code>svxlink</code> sin necesidad de contraseña, 
+                                        limitando los permisos únicamente a escribir en el dispositivo PTY especificado.
+                                    </p>
+                                    <p class="mb-0">
+                                        <strong class="text-danger">⚠️ IMPORTANTE:</strong> La ruta del dispositivo PTY en la configuración de visudo 
+                                        (<code><?php echo htmlspecialchars($dtmfStatus['path'] ?? '/dev/shm/dtmf_ctrl'); ?></code>) 
+                                        <strong>debe coincidir exactamente</strong> con el valor configurado en <code>DTMF_CTRL_PTY</code> 
+                                        en tu archivo <code>svxlink.conf</code>. Si cambias la ruta en la configuración de SVXLink, 
+                                        debes actualizar también la línea en visudo.
+                                    </p>
+                                </div>
+                                
+                                <p class="mt-3">
+                                    <strong>Uso:</strong> Ingresa el código del comando en el campo de texto y presiona "Enviar Comando". 
+                                    El comando será enviado al sistema SVXLink para su procesamiento.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Response message -->
                 <?php if ($responseMessage): ?>
                 <div class="row mt-3">
@@ -365,7 +440,7 @@
                                                     value="<?php echo htmlspecialchars($dtmfConfig['execution_command']); ?>" required>
                                                 <small class="form-text text-muted">
                                                     Utiliza <code>{DTMF_CODE}</code> para el código DTMF y <code>{PTY_DEVICE}</code> para la ruta del dispositivo. 
-                                                    Ejemplo: <code>printf '{DTMF_CODE}' | sudo -u svxlink tee {PTY_DEVICE} >/dev/null</code>
+                                                    Ejemplo: <code>printf '{DTMF_CODE}' | sudo -u svxlink /usr/bin/tee {PTY_DEVICE} >/dev/null</code>
                                                 </small>
                                             </div>
                                         </div>
@@ -383,7 +458,7 @@
                                     <button type="submit" class="btn btn-primary">
                                         💾 Guardar Configuración
                                     </button>
-                                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('execution_command').value = 'printf \'{DTMF_CODE}\' | sudo -u svxlink tee {PTY_DEVICE} >/dev/null';">
+                                    <button type="button" class="btn btn-secondary" onclick="document.getElementById('execution_command').value = 'printf \'{DTMF_CODE}\' | sudo -u svxlink /usr/bin/tee {PTY_DEVICE} >/dev/null';">
                                         🔄 Restaurar Comando por Defecto
                                     </button>
                                 </form>
@@ -536,35 +611,6 @@
                                         Consulta la documentación de SVXLink para más detalles.
                                     </small>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Información adicional -->
-                <div class="row mt-3">
-                    <div class="col-12">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="mb-0">ℹ️ Acerca de los Comandos DTMF</h5>
-                            </div>
-                            <div class="card-body">
-                                <p>
-                                    Los comandos DTMF (Dual-Tone Multi-Frequency) permiten controlar tu nodo SVXLink mediante tonos enviados 
-                                    desde un radio transmisor o desde esta interfaz web.
-                                </p>
-                                <p>
-                                    <strong>Requisitos:</strong>
-                                </p>
-                                <ul>
-                                    <li>La opción <code>DTMF_CTRL_PTY</code> debe estar habilitada en la configuración de SVXLink</li>
-                                    <li>El dispositivo PTY debe existir y tener permisos de lectura/escritura</li>
-                                    <li>El servicio SVXLink debe estar ejecutándose correctamente</li>
-                                </ul>
-                                <p>
-                                    <strong>Uso:</strong> Ingresa el código del comando en el campo de texto y presiona "Enviar Comando". 
-                                    El comando será enviado al sistema SVXLink para su procesamiento.
-                                </p>
                             </div>
                         </div>
                     </div>

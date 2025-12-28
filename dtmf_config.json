@@ -1,4 +1,4 @@
 {
-    "execution_command": "printf '{DTMF_CODE}' | tee {PTY_DEVICE} >\/dev\/null",
+    "execution_command": "printf '{DTMF_CODE}' | sudo -u svxlink \/usr\/bin\/tee {PTY_DEVICE} >\/dev\/null",
     "pty_path": "\/dev\/shm\/dtmf_ctrl"
 }
