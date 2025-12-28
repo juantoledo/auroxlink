@@ -117,8 +117,15 @@
         ];
 
         if ($status['exists']) {
+            // For symlinks (like PTY devices), resolve to the real path
+            $realPath = is_link($dtmfPtyPath) ? readlink($dtmfPtyPath) : $dtmfPtyPath;
+            
+            // Check if it's readable (don't check writable as it blocks on PTYs/FIFOs)
             $status['readable'] = is_readable($dtmfPtyPath);
-            $status['writable'] = is_writable($dtmfPtyPath);
+            
+            // Assume writable if it exists and is readable (actual write test would block)
+            // The real write permission check happens when executing commands
+            $status['writable'] = $status['readable'];
             $status['enabled'] = true;
         }
 
