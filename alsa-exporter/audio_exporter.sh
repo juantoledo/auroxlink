@@ -20,7 +20,7 @@ while true; do
             fi
             
             # Scan all PCM devices for this card
-            for f in /proc/asound/card${CARD}/pcm*/sub*/status 2>/dev/null; do
+            for f in /proc/asound/card${CARD}/pcm*/sub*/status; do
                 if [ -f "$f" ]; then
                     pcm=$(echo $f | grep -oP 'pcm\d+[cp]')
                     sub=$(echo $f | grep -oP 'sub\d+')
