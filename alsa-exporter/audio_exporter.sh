@@ -18,8 +18,14 @@ while true; do
                 type=$(echo $pcm | grep -oP '[cp]$')
                 [ "$type" = "p" ] && type="playback" || type="capture"
                 
-                state=$(awk '/state:/{print $2}' $f)
+                # Read the status file - it can be either just "state" or "state: value" format
+                state=$(cat "$f" | awk '/state:/{print $2}')
+                if [ -z "$state" ]; then
+                    # If no "state:" prefix, read the first line directly
+                    state=$(head -n1 "$f" | tr -d '[:space:]')
+                fi
                 state_val=${state_map[$state]:-0}
+                
                 owner=$(awk '/owner_pid:/{print $2}' $f)
                 
                 echo "alsa_pcm_state{card=\"${CARD}\",device=\"${pcm}\",subdevice=\"${sub}\",type=\"${type}\"} ${state_val}"
