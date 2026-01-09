@@ -62,7 +62,7 @@ The installer will:
 
 Edit `/usr/local/bin/audio_exporter.sh` to change:
 
-- `CARD=1` - Change to your sound card number
+- `CARDS="0 1 2 3 4"` - Space-separated list of sound card numbers to monitor (automatically skips non-existent cards)
 - `METRICS_FILE` - Change metrics file location
 - `sleep 1` - Adjust scraping interval
 
