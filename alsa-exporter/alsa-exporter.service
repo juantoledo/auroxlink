@@ -1,0 +1,15 @@
+[Unit]
+Description=ALSA Audio PCM State Exporter for Prometheus
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/audio_exporter.sh
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
